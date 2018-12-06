@@ -43,6 +43,7 @@ class Population {
         this.randomThresholdMutationRate = evolve.randomThreshold;  
 
         this.vehicles = [];
+        this.champions = [];
         this.generation = 0;
         this.idGenerator = 0;
 
@@ -77,12 +78,21 @@ class Population {
         }
     }
 
+    sortByFitness() {
+        this.vehicles.sort(CompareFitness);
+    }
+
     // selection fills the matingPool array for selection based on probability.
     selection() {
+        this.champions = [];
         this.matingPool = []; // matingPool will have length 100
         let total = 0;
+        this.sortByFitness();
         for (let i = 0; i < this.size; i++) {
             total += this.vehicles[i].fitnessScore;
+        }
+        for (let i = 0; i < config.numberCopied; i++) {
+            this.champions.push(this.vehicles[i]);
         }
         for (let i = 0; i < this.size; i++) {
             // add vehicles[i] to mating pool a number of times proportionate to its fitness score
@@ -97,7 +107,10 @@ class Population {
     reproduction(style = 0) {
         this.vehicles = [];
         // generate size childs for next generation
-        for (let i = 0; i < this.size; i++) {
+        for (let i = 0; i < config.numberCopied; i++) {
+            this.addVehicle(this.champions[i]);
+        }
+        for (let i = config.numberCopied; i < this.size; i++) {
             var parent1 = random(this.matingPool);
             var parent2 = null;
             do {
@@ -139,7 +152,6 @@ class Population {
     update() {
         this.fitness();
         generationTimer += deltaT;
-        console.log(generationTimer);
         if (generationTimer > config.generationLifespan) {
             generationTimer = 0;
             this.selection();
@@ -167,4 +179,14 @@ class Population {
     //     child = Vehicle.crossover(parent1, parent2, child);
     //     console.log(child);
     // }
+}
+
+function CompareFitness(a, b) {
+    if (a.fitnessScore < b.fitnessScore) {
+        return 1;
+    } if (a.fitnessScore > b.fitnessScore) {
+        return -1;
+    } else {
+        return 0;
+    }
 }

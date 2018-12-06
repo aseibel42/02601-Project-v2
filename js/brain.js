@@ -273,7 +273,6 @@ class Synapse {
   render(r) {
     push();
     strokeWeight(r/10);
-    console.log(this.pre.x);
     line(this.pre.x, this.pre.y, this.post.x, this.post.y);
     pop();
   }

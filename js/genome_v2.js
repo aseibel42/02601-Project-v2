@@ -6,11 +6,12 @@ class Genome {
       this.outputNeuronGenes = [];
       this.neuronGenes = [];  // input, output, or hidden
       this.synapseGenes = [];
-      this.numLayers = 2;  // input and output layer by default
+    //   this.numLayers = 2;  // input and output layer by default
     }
   
     // Born with default configuration
     initializeGenes(genePool) {
+        // this.numLayers = genePool.layers.length;
       for (let i = 0; i < genePool.synapseGenes.length; i++) {
         this.addSynapseGene(genePool.synapseGenes[i]);
         this.addNeuronGene(genePool.synapseGenes[i].from);
@@ -150,7 +151,7 @@ class Genome {
         // if edge crosses 1 layer, add new layer in between
         if (sg.length === 1) {
             genePool.addLayer(newLayerIndex); // addLayer method updates the layer numbering for all nodes on layer > newLayerIndex
-            this.numLayers++;
+            // this.numLayers++;
         }
 
         // remove sg from my synapseGenes

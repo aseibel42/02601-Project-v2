@@ -128,6 +128,17 @@ class Signal {
     this.type = type;
   }
 
+  consume(v) {
+    for (let i = 0; i < world.signals.length; i++ ) {
+      if (this === world.signals[i]) {
+        world.signals.push(new Signal(random(canvasWidth), random(canvasHeight), config.signalRadius, config.signalIntensity, this.type));
+        world.signals.splice(i, 1);
+        v.fitnessScore += 10;
+      }
+    }
+    
+  }
+
   // Signal.render displays the signal to the canvas using functions from the p5 library.
   //    Lights are represented by a yellow ellipse
   //    Food is represented by a green square

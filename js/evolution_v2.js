@@ -33,7 +33,7 @@ class NeuronGene {
   }
 
   copy() { // When is this used????????
-    return new NeuronGene(this.id);
+    return this;
   }
 }
 
@@ -55,10 +55,8 @@ class SynapseGene {
     return this.to.layer - this.from.layer;
   }
  
-  copy() { // When is this used????????
-    var copy = new SynapseGene(this.from, this.to, this.weight);
-    copy.id = this.id; 
-    return copy;
+  copy() { 
+    return this;
   }
 
   disable() {

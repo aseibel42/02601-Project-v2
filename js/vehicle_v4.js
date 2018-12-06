@@ -79,10 +79,10 @@ class Vehicle {
 
   // Vehicle.connectNeuralCircuit is a utility function that adds Neurons to the Vehicle's Neural Circuit
   // for each of its effectors and sensors. It also adds synapses to the Neural Circuit according to the genome.
-  connectNeuralCircuit(genome) {
+  connectNeuralCircuit() {
 
     // initialize layers of NC
-    for (var i = 0; i < this.genome.numLayers; i++) {
+    for (var i = 0; i < this.population.genePool.layers.length; i++) {
       this.brain.layers[i] = [];
     }
 
@@ -120,6 +120,8 @@ class Vehicle {
     // process inputs
     this.brain.process();
 
+    // eat
+    this.eat();
   }
 
   // Vehicle.drive updates the position of the vehicle based on the velocity of each effector
@@ -155,6 +157,16 @@ class Vehicle {
 
   }
 
+  eat() {
+    for (let s of world.signals) {
+      let d = p5.Vector.dist(this.body.position, s.position);
+      if (d < this.body.width) {
+        s.consume(this);
+      }
+      
+    }
+  }
+
   // Vehicle.render displays the vehicle to the canvas using functions from the p5 library
   render() {
     push();
@@ -172,7 +184,7 @@ class Vehicle {
 
   // fitness function computes the fitness score for current object based on how well it achieved a certain goal.
   fitness() {
-    this.fitnessScore += random();
+    // this.fitnessScore += random();
   }
 
   // crossover function creates a new genome from a combination of current object's genome and the partner's genome.

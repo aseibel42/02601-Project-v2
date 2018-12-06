@@ -21,7 +21,7 @@ var config = {
   sensorSeparation: 0.75, // slides sensors closer together/ farther apart (ranges from 0 to 1) (default = 0.75)
 
   // populationSize: 10,
-  generationLifespan: 4,
+  generationLifespan: 10,
   numberCopied: 2
 };
 
