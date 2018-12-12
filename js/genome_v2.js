@@ -2,14 +2,15 @@
 class Genome {
 
     constructor() {
-      this.inputNeuronGenes = [];
+      this.inputNeuronGenes = []; 
       this.outputNeuronGenes = [];
       this.neuronGenes = [];  // input, output, or hidden
       this.synapseGenes = [];
     //   this.numLayers = 2;  // input and output layer by default
     }
   
-    // Born with default configuration
+    // initializeGenes takes a genePool and adds all the synapse genes (edges) and associated neuron genes
+    // (source and target nodes) from genePool to the current genome. It creates a genome with default topology.
     initializeGenes(genePool) {
         // this.numLayers = genePool.layers.length;
       for (let i = 0; i < genePool.synapseGenes.length; i++) {
@@ -19,28 +20,26 @@ class Genome {
       }
     }
 
-    // crossover creates a new genome and evaluates if each of the edges from genome1 and genome2 is inherited.
+    // crossover creates a new genome from the two received genomes.
+    // If both parents have the same synapse gene, inherit it. If only of them has it, inherit it randomly.
     static crossover(genome1, genome2) {
         var newGenome = new Genome();
-        //var allEdges = genome1.synapseGenes.concat(genome2.synapseGenes);
-        var allEdges = genome1.combineSynapsesNoRepetition(genome2);
+        var allSynapseGenes = genome1.combineSynapseGenesNoRepeat(genome2);
         // order edges from lower layers to higher
-        allEdges.sort(orderSynapses);
+        allSynapseGenes.sort(function(a,b){return a.layer - b.layer}); // check if in correct order!!!!!*******
         
-        console.log(allEdges);
+        //console.log(allEdges);
 
-        for (let i = 0; i < allEdges.length; i++) {
-            if (random(1) < 0.7) { // threshold for passing this trait
-                if (allEdges[i].from.layer > 0) { // check if origin neuron exists, so we can add a new edge from it.
-                    if (neuronExists(allEdges[i].from)) {
-                        newGenome.addSynapseGene(allEdges[i]);
-                        newGenome.addNeuronGene(allEdges[i].from);
-                        newGenome.addNeuronGene(allEdges[i].to);
-                    }
-                } else {
-                    newGenome.addSynapseGene(allEdges[i]);
-                    newGenome.addNeuronGene(allEdges[i].from);
-                    newGenome.addNeuronGene(allEdges[i].to);
+        for (let i = 0; i < allSynapseGenes.length; i++) {
+            // If both genomes have synapse i, inherit it.
+            if (genome1.containsSynapseGene(allSynapseGenes[i]) && genome2.containsSynapseGene(allSynapseGenes[i])) {
+                newGenome.addNeuronGene(allSynapseGenes[i].from);
+                newGenome.addNeuronGene(allSynapseGenes[i].to);
+                newGenome.addSynapseGene(allSynapseGenes[i]);
+            } else if (random(1) < 0.5) { // Inherit randomly otherwise (flip a coin).
+                if (newGenome.containsNeuronGene(allSynapseGenes[i].from)) { // Check if origin neuron exists, so we can add a new outgoing edge from it.
+                    newGenome.addNeuronGene(allSynapseGenes[i].to);
+                    newGenome.addSynapseGene(allSynapseGenes[i]); 
                 }
             }
         }
@@ -52,22 +51,23 @@ class Genome {
     // It assumes genome1 as the fittest genome and gives it higher priority on inheritance.
     static crossoverBiased(genome1, genome2) {
         var newGenome = new Genome();
-        //var allEdges = genome1.synapseGenes.concat(genome2.synapseGenes);
-        var allEdges = genome1.combineSynapsesNoRepetition(genome2);
+        var allSynapseGenes = genome1.combineSynapseGenesNoRepeat(genome2);
         // order edges from lower layers to higher
-        allEdges.sort(orderSynapses);
+        allSynapseGenes.sort(function(a,b){return a.layer - b.layer}); // check if in correct order!!!!!*******
 
         // inherit common edges
-        for (let i = 0; i < allEdges.length; i++) {
-            if (genome1.containsSynapseGene(allEdges[i]) && genome2.containsSynapseGene(allEdges[i])) { // if both genomes contain the synapse gene
-                newGenome.addSynapseGene(allEdges[i]);
-                newGenome.addNeuronGene(allEdges[i].from);
-                newGenome.addNeuronGene(allEdges[i].to);
-            } else if (genome1.containsSynapseGene(allEdges[i])) { // prioritize synapse genes from genome1
+        for (let i = 0; i < allSynapseGenes.length; i++) {
+            // If both genomes have synapse i, inherit it.
+            if (genome1.containsSynapseGene(allSynapseGenes[i]) && genome2.containsSynapseGene(allSynapseGenes[i])) {
+                newGenome.addSynapseGene(allSynapseGenes[i]);
+                newGenome.addNeuronGene(allSynapseGenes[i].from);
+                newGenome.addNeuronGene(allSynapseGenes[i].to);
+            } else if (genome1.containsSynapseGene(allSynapseGenes[i])) { // Prioritize synapse genes from genome1. Second pass to genes from parent1.
                 if (random(1) < 0.7) { // threshold for passing this trait
-                    newGenome.addSynapseGene(allEdges[i]);
-                    newGenome.addNeuronGene(allEdges[i].from);
-                    newGenome.addNeuronGene(allEdges[i].to);
+                    if (newGenome.neuronExists(allSynapseGenes[i].from)) { // Check if origin neuron exists, so we can add a new outgoing edge from it.
+                        newGenome.addNeuronGene(allSynapseGenes[i].to);
+                        newGenome.addSynapseGene(allSynapseGenes[i]);
+                    }
                 }
             }
         }
@@ -75,168 +75,102 @@ class Genome {
         return newGenome;
     }
 
-    // mutate(mutationRate, genePool) {
-    //     if (random(1) < mutationRate) {
-    //         // select randomly two nodes from my neuron genes
-    //         let allNeurons = this.getAllNeuronGenes();
-    //         // n1 and n2 neuron genes belong to my genome
-    //         let n1 = random(allNeurons);
-    //         let n2 = random(allNeurons);
-    //         genePool = this.mutateAddSynapse(n1, n2, genePool);
-    //     }
-    //     if (random(1) < mutationRate) {
-    //         let s1 = random(this.synapseGenes);
-    //         genePool = this.mutateAddNeuron(s1);
-    //     }
-    //     return genePool;
-    // }
-
+    // mutate
     mutate(newSynapseMutationRate, newNeuronMutationRate, genePool) {
-        if (random() < newSynapseMutationRate) {
+        console.log("within mutation: synMutRate " + newSynapseMutationRate + ", neuMutRate " + newNeuronMutationRate);
+
+        if (random(1) < newSynapseMutationRate) {
             // select randomly two nodes from my neuron genes
             let allNeurons = this.getAllNeuronGenes();
             // n1 and n2 neuron genes belong to my genome
             let n1 = random(allNeurons);
-            let n2 = random(allNeurons);
+            let n2 = null;
+            do {
+                n2 = random(allNeurons);
+            } while(n1.id == n2.id);
+
+            //console.log(this.co);
+            console.log("before mutation, to be joined (" + n1.id + "," + n2.id + ")");
+            console.log(this);
             this.mutateAddSynapse(n1, n2, genePool);
+            console.log("after mutation");
+            console.log(this);
         }
-        if (random() < newNeuronMutationRate) {
+        if (random(1) < newNeuronMutationRate) {
             let s1 = random(this.synapseGenes);
+
+            console.log(this.containsSynapseGene(s1)); // should be true always
+            console.log("before mutation, to be split id " + s1.id + " (" + s1.from.id + "," + s1.to.id + ")");
+            console.log(this);
             this.mutateAddNeuron(s1, genePool);
+            console.log("after mutation");
+            console.log(this);
+            console.log(this.containsSynapseGene(s1));
         }
     }
 
-    mutateAddSynapse(n1, n2, genePool) {
-        if (n1.layer == n2.layer) {
-            return
-        } else if (n1.layer > n2.layer) {
-            let temp = n2;
-            n2 = n1;
-            n1 = temp;
+    // mutateAddSynapse looks for the (ng1, ng2) synapse in my genome and if it does not exist, it is created and
+    // added to both genePool and my genome.
+    // It receives NeuronGene objects ng1 and ng2 as parameters.
+    mutateAddSynapse(ng1, ng2, genePool) {
+        if (ng1.layer == ng2.layer) {
+            return;
+        } 
+        if (ng1.layer > ng2.layer) {
+            let temp = ng2;
+            ng2 = ng1;
+            ng1 = temp;
+        } 
+        // Check if synapse gene already exists in gene pool.
+        let sg = genePool.getSynapseGene(ng1, ng2);
+        // Create (ng1, ng2) synapse if it does not exist and add it to the gene pool.
+        if (sg === null) { 
+            let newSg = new SynapseGene(ng1, ng2);
+            // New mutations are added to gene pool first
+            genePool.addSynapseGene(newSg);
+            this.addSynapseGene(newSg);
         } else {
-            // check if synapse gene already exists in gene pool
-            var found = null;
-            for (let i = 0; i < genePool.synapseGenes.length; i++) {
-                if (genePool.synapseGenes[i].from.id === n1.id && genePool.synapseGenes[i].to.id === n2.id) {
-                    found = genePool.synapseGenes[i];
-                    break;
-                }
-            }
-            // create (n1, n2) edge if it does not exist
-            if (found === null) {
-                let sg = new SynapseGene(n1, n2, random(-1, 1));
-                // new mutations are added to gene pool first
-                genePool.addSynapseGene(sg);
+            // Add synapse gene if it does not already exist in current genome.
+            if (!this.containsSynapseGene(sg)) {
                 this.addSynapseGene(sg);
-            } else {
-                // add synapse gene if it does not exit in my genome
-                if (!this.containsSynapseGene(found)) {
-                    this.addSynapseGene(found);
-                }
             }
-
-            console.log("successful add synapse mutation")
         }
-        
+
+        console.log("Successfully addded synapse mutation!");
     }
 
-    // sg: synapse gene object
+    // mutateAddNeuron receives a synapse gene sg and adds a new neuron in between sg.from and sg.to.
+    // It adds the new edge to 
     mutateAddNeuron(sg, genePool) {
         var newLayerIndex = sg.from.layer + 1;
         // split edge
-        var n1 = sg.from;
-        var n2 = sg.to;
-        // var weight = sg.weight;
+        var ng1 = sg.from;
+        var ng2 = sg.to;
 
-        // if edge crosses 1 layer, add new layer in between
+        // If edge crosses 1 layer, add new layer in between.
         if (sg.length === 1) {
             genePool.addLayer(newLayerIndex); // addLayer method updates the layer numbering for all nodes on layer > newLayerIndex
-            // this.numLayers++;
         }
 
-        // remove sg from my synapseGenes
+        // Remove sg from my synapseGenes.
         this.removeSynapseGene(sg);
-        // add new node in between n1 and n2
-        // all neurons created at this point are of type hidden
-        var ng = new NeuronGene(newLayerIndex, NODETYPE.HIDDEN);
-        genePool.addNeuronGene(ng);
-        this.addNeuronGene(ng);
+        // Add new node in between ng1 and ng2.
+        // All neurons created at this point are of type hidden.
+        var newNg = new NeuronGene(newLayerIndex, NODETYPE.HIDDEN);
+        genePool.addNeuronGene(newNg);
+        this.addNeuronGene(newNg);
         // create new edges
-        var sg1 = new SynapseGene(n1, ng);
-        var sg2 = new SynapseGene(ng, n2);
+        var sg1 = new SynapseGene(ng1, newNg);
+        var sg2 = new SynapseGene(newNg, ng2);
         genePool.addSynapseGene(sg1);
         genePool.addSynapseGene(sg2);
         this.addSynapseGene(sg1);
         this.addSynapseGene(sg2);
 
-        console.log("successful add neuron mutation")
+        console.log("Successfully added neuron mutation!!");
     }
 
-    // mutateAddSynapse looks for the (n1,n2) edge in my genome and if it does not exist, it is created on genePool 
-    // and added to my genome.
-    // n1: NeuronGene object
-    // n2: NeuronGene object
-    // mutateAddSynapse(n1, n2, genePool) {
-    //     // check if synapse gene already exists in gene pool
-    //     var found = null;
-    //     for (let i = 0; i < genePool.synapseGenes.length; i++) {
-    //         if (genePool.synapseGenes[i].from.id === n1.id && genePool.synapseGenes[i].to.id === n2.id) {
-    //             found = genePool.synapseGenes[i];
-    //             break;
-    //         }
-    //     }
-    //     // create (n1, n2) edge if it does not exist
-    //     if (found === null) {
-    //         let sg = new SynapseGene(n1, n2, random(-1, 1));
-    //         // new mutations are added to gene pool first
-    //         sg = genePool.addSynapseGene(sg);
-    //         this.addSynapseGene(sg);
-    //     } else {
-    //         // add synapse gene if it does not exit in my genome
-    //         if (!this.containsSynapseGene(found)) {
-    //             this.addSynapseGene(found);
-    //         }
-    //     }
-
-    //     return genePool;
-    // }
-
-    // // sg: synapse gene object
-    // mutateAddNeuron(sg, genePool) {
-    //     var newLayerIndex = sg.from.layer + 1;
-    //     // split edge
-    //     var n1 = sg.from;
-    //     var n2 = sg.to;
-    //     var weight = sg.weight;
-
-    //     // if edge crosses 1 layer, add new layer in between
-    //     if (sg.length === 1) {
-    //         genePool.addLayer(newLayerIndex); // addLayer method updates the layer numbering for all nodes on layer > newLayerIndex
-    //         // update layer numbering for n2
-    //         n2.layer++;
-    //         genePool.updateNeuronGene(n2);
-    //         this.numLayers++;
-    //     }
-
-    //     // remove sg from my synapseGenes
-    //     this.removeSynapseGene(sg);
-    //     // add new node in between n1 and n2
-    //     // all edges created at this point are of type hidden
-    //     var ng = new NeuronGene(random(0, 1), random(-1, 1), newLayerIndex, NODETYPE.HIDDEN);
-    //     ng = genePool.addNeuronGene(ng);
-    //     this.addNeuronGene(ng);
-    //     // create new edges
-    //     var sg1 = new SynapseGene(n1, ng, random(-1, 1));
-    //     var sg2 = new SynapseGene(ng, n2, weight);
-    //     sg1 = genePool.addSynapseGene(sg1);
-    //     sg2 = genePool.addSynapseGene(sg2);
-    //     this.addSynapseGene(sg1);
-    //     this.addSynapseGene(sg2);
-
-    //     return genePool;
-    // }
-
-    // Assumes each single neuron is only present in one of the subsets (does not check for repeats).
+    // It assumes each single neuron is only present in one of the subsets (does not check for repeats).
     getAllNeuronGenes() {
         var allNeuronGenes = [];
         for (let itm of this.inputNeuronGenes) {
@@ -258,7 +192,7 @@ class Genome {
             } else if (ng.type == NODETYPE.OUTPUT) {
                 this.outputNeuronGenes.push(ng);
             } else {
-                this.neuronGenes.push(ng);
+                this.neuronGenes.push(ng); // check only contains hidden type neurons!!!!!!!***********
             }
         }
     }
@@ -305,17 +239,7 @@ class Genome {
         return false;
     }
 
-    checkIfNeuronExists(neuron) {
-        var allNeurons = this.getAllNeuronGenes();
-        for (let itm of allNeurons) {
-            if (neuron.id === itm.id) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    combineSynapsesNoRepeat(genome) {
+    combineSynapseGenesNoRepeat(genome) {
         var combined = [];
         combined = combined.concat(this.synapseGenes);
 
@@ -334,7 +258,7 @@ class Genome {
         return combined;
     }
 
-    combineNeuronsNoRepeat(genome) {
+    combineNeuronGenesNoRepeat(genome) {
         var combined = [];
         combined = combined.concat(this.getAllNeuronGenes());
 
@@ -347,31 +271,23 @@ class Genome {
         return combined;
     }
 
-    // orderSynapses comparison function for ordering
-    orderSynapses(a, b) {
-        if (a.from < b.from)
-            return -1;
-        if (a.from > b.from)
-            return 1;
-        return 0;
-    }
-  
-    getNodeById(id) {
-      for (let n of this.neuronGenes) {
-        if (n.id == id) {
-          return n;
-        }
-      }
-      console.log("Error: unable to find node gene by ID.")
-    }
-
-    getSynapseById(id) {
-        for (let s of this.synapseGenes) {
-          if (s.id == id) {
+    getSynapseGeneById(id) {
+        for (let i = 0; i < this.synapseGenes.length; i++) {
+          if (this.synapseGenes[i].id == id) {
             return s;
           }
         }
-        console.log("Error: unable to find node gene at " + id.toString());
+        return null;
+    }
+
+    getMaxSynapseLength() {
+        var maxLength = 0;
+        for (let s of this.synapseGenes) {
+            if (s.length > maxLength) {
+                maxLength = s.length;
+            }
+        }
+        return maxLength;
     }
   
     copy() { // when is this used??????????

@@ -6,52 +6,54 @@ const NODETYPE = {
   OUTPUT: "OUTPUT"
 };
 
+const AGGRESSION = {
+  wSameSide: 0,
+  wOppSide: 1
+}
+
+const FEAR = {
+  wSameSide: 1,
+  wOppSide: 0
+}
+
+const LIKE = {
+  wSameSide: 0,
+  wOppSide: -1
+}
+
+const CURIOUSITY = {
+  wSameSide: -1,
+  wOppSide: 0
+}
+
+const COLLECT = {
+  wSameSide: -1,
+  wOppSide: 1
+}
+
+const AVOID = {
+  wSameSide: 1,
+  wOppSide: -1
+}
+
 //
 class NeuralCircuit {
   constructor(parent) {
     this.parent = parent;   // vehicle body
-    this.neurons = {};      // container for nodes of neural circuit
-    this.layers = [];       
-    this.synapses = [];    // container for connections of neural circuit
-
-    // initialize layers of NC
-    // for (var i = 0; i < genome.numLayers; i++) {
-    //   this.layers[i] = [];
-    // }
-
-    // create neurons based on node genes
-    // var s = 0;
-    // for (let n of genome.nodeGenes) {
-    //   if (n.type = NODETYPE.INPUT) {
-    //     this.addNeuron(new SensorNeuron(this, n, this.parent.vehicle.sensors[s])); s++;
-    //   } else if (n.type = NODETYPE.OUTPUT) {
-    //     if (n.ID = 2) {
-    //       this.addNeuron(new EffectorNeuron(this, n, this.parent.vehicle.effectors[0]));
-    //     } else {
-    //       this.addNeuron(new EffectorNeuron(this, n, this.parent.vehicle.effectors[0]));
-    //     }
-    //   } else {
-    //     this.addNeuron(new Neuron(this, n));
-    //   }
-    // }
-
-    // create synapses based on connection genes
-    // for (let c of genome.connectionGenes) {
-    //   this.addSynapse(new Synapse(this, c));
-    // }
+    this.layers = [];       // container for neurons of neural circuit. Neurons are organized by layers.
+    this.synapses = [];     // container for connections of neural circuit
   }
 
   addNeuron(n) {
-    console.log(n.layer)
-    console.log(this.layers)
     this.layers[n.layer].push(n);
-    this.neurons[n.ID] = n;
   }
 
   addSynapse(s) {
     this.synapses.push(s);
   }
 
+  // randomize assigns random threshold, bias and activation values to each neuron of current neural circuit.
+  // It also assigns a random weight to each synapse.
   randomize() {
     for (let l of this.layers) {
       for (let n of l) {
@@ -66,59 +68,92 @@ class NeuralCircuit {
     }
   }
 
-  getNeuronByID(id) {
-    // for (let l of this.layers) {
-    //   for (let n of l) {
-    //     console.log(n.id)
-    //     if (n.id = id) {
-    //       return n;
-    //     }
-    //   }
-    // }
-    return this.neurons[id];
+  // NeuralCircuit.build receives a settings object as parameter and assigns a threshold and bias
+  // for each neuron, and a weight for each synapse. Used for initializing vehicles to 
+  // have a specific behavior, depending on the settings
+  build(settings) {
+
+    // input layer
+    for (let n0 of this.layers[0]) {
+      n0.threshold = 0;
+      n0.bias = 0;
+    }
+    // output layer
+    for (let n1 of this.layers[1]) {
+      n1.threshold = 0;
+      n1.bias = 0.5;
+    }
+
+    for (let i = 0; i < settings.length; i++) {
+
+      // left
+      this.synapses[4*i].weight = settings[i].wSameSide;
+      this.synapses[4*i+1].weight = settings[i].wOppSide;
+
+      // right
+      this.synapses[4*i+2].weight = settings[i].wOppSide;
+      this.synapses[4*i+3].weight = settings[i].wSameSide;
+    }
   }
 
-  getSynapseById(id) {
-    for (let s of this.synapses) {
-      if (s.ID == id) {
-        return s;
+  // getNeuronById looks for a neuron with a given id in current neural circuit and returns it.
+  getNeuronById(id) {
+    for (let i = 0; i < this.layers.length; i++) {
+      for (let j = 0; j < this.layers[i].length; j++) {
+        if (this.layers[i][j].id == id) {
+          return this.layers[i][j];
+        }
       }
     }
-    console.log("Error: unable to find synapse at " + id.toString());
+    return null;
+  }
+
+  // get getSynapseById looks for a synapse with a given id in current neural circuit and returns it.
+  getSynapseById(id) {
+    for (let i = 0; i < this.synapses.length; i++) {
+      if (this.synapses[i].id == id) {
+        return this.synapses[i];
+      }
+    }
+    return null;
 }
 
   // NeuralCircuit.process updates the activation levels of all neurons in the circuit by 
   // iterating through all the synapses in an order according to the layer of the presynaptic neuron 
   // of each sensor.
   process() {
+
+    // get sensor input
+    for (var i = 0; i < this.layers[0].length; i++) {
+      this.layers[0][i].sensor.sense();
+    }
+
+    // Iterate over each synapse in the NC layer by layer,
+    // and send  a signal across each synapse, from presynaptic neuron to postsynaptic neuron    
     for (var i = 0; i < this.layers.length; i++) {
-      //console.log(this.synapses[i]);
       for (let s of this.synapses) { 
         if (s.pre.layer == i && s.enabled) {
 
-          // If the prysynaptic neuron is associated with a sensor, get the activation from the sensor
-          if (s.pre instanceof(SensorNeuron)) {
-            s.pre.sensor.sense();
-          }
-
-          // Send signal across synapse, from presynaptic neuron to postsynaptic neuron
           s.feedForward();
 
-          // If the postsynaptic neuron is associated with an effector, update the effector activation
-          if (s.post instanceof(EffectorNeuron)) {
-            s.post.effector.update()
-          }
         }
       }
-      
-      // Reset activations to zero each round
-      for (let n of this.layers[i]) {
+    }
+
+    // update effectors
+    for (var i = 0; i < 2; i++) {
+      this.layers[this.layers.length-1][i].effector.update();
+    }
+
+    // reset activation accumulations back to default state
+    for (var l of this.layers) {
+      for (var n of l) {
         n.activation = n.bias;
       }
     }
   }
 
-  // NeuralCircuit.render displays the neural circuit to the canvas using functions from the p5 library
+  // NeuralCircuit.render displays the neural circuit to the canvas using functions from the p5 library.
   render() {
     if (config.renderNeuralCircuit) {
       for (let l of this.layers) {
@@ -134,14 +169,14 @@ class NeuralCircuit {
 }
 
 // Synapse class definition
-// A synapse is essentially a directed edge on the Neural Circuit graph
+// A synapse is a directed edge on the Neural Circuit graph.
 class Synapse {
   constructor(network, gene) {
     this.network = network;
-    this.ID = gene.id;
-    this.pre = network.getNeuronByID(gene.from.id);
-    this.post = network.getNeuronByID(gene.to.id);
-    this.weight = gene.weight;
+    this.id = gene.id;
+    this.pre = network.getNeuronById(gene.from.id);
+    this.post = network.getNeuronById(gene.to.id);
+    this.weight = 0;
     this.length = gene.length;
     this.enabled = gene.enabled;
   }
@@ -152,6 +187,7 @@ class Synapse {
     var a, t;
     a = this.pre.activation;
     t = this.pre.threshold;
+
     if (a > t) {
       this.post.activation += (a * this.weight);
     }
@@ -160,7 +196,7 @@ class Synapse {
   // Synapse.render displays the synapse to the canvas as a line using functions from the p5 library
   render(r) {
     push();
-    strokeWeight(r/10);
+    strokeWeight(abs(this.weight) * r/10);
     line(this.pre.x, this.pre.y, this.post.x, this.post.y);
     pop();
   }
@@ -173,7 +209,7 @@ class Synapse {
 class Neuron {
   constructor(network, gene) {
     this.network = network;
-    this.ID = gene.id;
+    this.id = gene.id;
     this.layer = gene.layer;
     this.x = 0;
     this.y = 0;

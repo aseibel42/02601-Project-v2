@@ -1,3 +1,11 @@
+const DISABLED = {
+  newNeuron: 0,
+  newSynapse: 0,
+  randomWeight: 0,
+  randomBias: 0,
+  randomThreshold: 0
+}
+
 const SLOW = {
   newNeuron: 0.1,
   newSynapse: 0.1,
@@ -26,13 +34,11 @@ class NeuronGene {
 
   constructor(layer, type) {
     this.id = 0;
-    // this.threshold = t;
-    // this.bias = b;
     this.layer = layer;
     this.type = type;
   }
 
-  copy() { // When is this used????????
+  copy() {
     return this;
   }
 }
@@ -46,8 +52,6 @@ class SynapseGene {
     this.id = 0;
     this.from = from;
     this.to = to;
-    // this.pair = [from, to];
-    // this.length = to.layer - from.layer; // calculated attribute in get
     this.enabled = enabled;
   }
 

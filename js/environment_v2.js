@@ -1,17 +1,44 @@
-//
-//
-
+// Predefined object containing all types of signals.
 const SIGNAL_TYPE = {
   LIGHT: "LIGHT",
   FOOD: "FOOD",
   HAZARD: "HAZARD"
 };
 
-const ENV_SETTINGS1 = {
+// Environment setup objects with predefined settings.
+const LIGHTS = {
   method: "random",
   numLights: 8,
   numFood: 0,
   numHazard: 0
+}
+
+const FOOD = {
+  method: "random",
+  numLights: 0,
+  numFood: 10,
+  numHazard: 0
+}
+
+const FOOD_HAZARD = {
+  method: "random",
+  numLights: 0,
+  numFood: 10,
+  numHazard: 10
+}
+
+const ONLY_VEHICLES = {
+  method: "random",
+  numLights: 0,
+  numFood: 0,
+  numHazard: 0
+}
+
+const ALL_TYPES = {
+  method: "random",
+  numLights: 5,
+  numFood: 5,
+  numHazard: 5
 }
 
 
@@ -25,6 +52,8 @@ class Environment {
     this.populations = [];
   }
 
+  // setup receives an evironment setup object with initial values for setting the environment accordingly.
+  // The setting object contains: method, numLights, numFood, numHazard.
   setup(settings) {
     if (settings.method == "random") {
       for (var i = 0; i < settings.numLights; i++) {
@@ -40,34 +69,27 @@ class Environment {
   }
 
   update() {
-    //for (let v of this.vehicles) {
-    //  v.update();
-    //}
     for (let p of this.populations) {
       p.update();
     }
   }
 
   addSignal(s) {
-    /*
-    if (this.signalTypes.indexOf(s.type) == -1) {
-      this.signalTypes.push(s.type);
-    }
-    */
     this.signals.push(s);
   }
 
   // Environment.render loops through all objects conained within the Environment and calls each individual object's render() function
   render() {
+
+    // render all signals
     for (let s of this.signals) {
       s.render();
     }
+
+    // render all vehicles
     for (let p of this.populations) {
       p.render();
     }
-    //for (let v of this.vehicles) {
-    //  v.render();
-    //}
   }
 }
 
@@ -94,6 +116,8 @@ class Body {
     this.children.push(c);
   }
 
+  // Body.borders checks if a Body object has gone past the limits of the canvas. If the body has gone off the canvas,
+  // move to the opposite side of the canvas.
   borders() {
     if (this.pivot.x < 0)  this.pivot.x = canvasWidth;
     if (this.pivot.y < 0)  this.pivot.y = canvasHeight;
@@ -133,7 +157,6 @@ class Signal {
       if (this === world.signals[i]) {
         world.signals.push(new Signal(random(canvasWidth), random(canvasHeight), config.signalRadius, config.signalIntensity, this.type));
         world.signals.splice(i, 1);
-        v.fitnessScore += 10;
       }
     }
     

@@ -14,8 +14,6 @@ class Vehicle {
     /* genetics */
     // create empty genome 
     this.genome = {};
-    // born with default neural circuit
-    // this.genome.initializeGenes(population.genePool);
     this.fitnessScore = 0;
     /************/
     
@@ -23,12 +21,12 @@ class Vehicle {
     this.body = new Body(this, x, y, population.agentSize, 1.5*population.agentSize, random(0, 2*PI), 0, config.motorFrontBackPlacement);
     this.color = population.color;
 
-    // setup sensors; create 2 for each sensor type.
+    // setup sensors; create 2 for each type of sensor.
     this.sensors = [];
     var len = population.sensorTypes.length;
-    for (var i = 0; i < len; i++) {
-      this.addSensor(new Sensor(this.body, "LEFT", (PI/6 * (len-1)) * (-1*PI/4 + 2*i/len), population.sensorTypes[i]))
-      this.addSensor(new Sensor(this.body, "RIGHT", -(PI/6 * (len-1)) * (-1*PI/4 + 2*i/len), population.sensorTypes[i]))
+    for (let i = 0; i < len; i++) {
+      this.addSensor(new Sensor(this.body, "LEFT", (PI/6 * (len-1)) * (-1*PI/4 + 2*i/len), population.sensorTypes[i]));
+      this.addSensor(new Sensor(this.body, "RIGHT", -(PI/6 * (len-1)) * (-1*PI/4 + 2*i/len), population.sensorTypes[i]));
     }
     
     // setup effectors
@@ -43,17 +41,6 @@ class Vehicle {
     this.brain = new NeuralCircuit(this.body);
     // this.connectNeuralCircuit();    
   }
-
-  // initialize() {
-
-  //   this.genome = Genome.initializeGenome(this.population.genePool);
-  //   //console.log(this.population.genePool)
-  //   //console.log(this.genome)
-  //   this.brain = new NeuralCircuit(this.body, this.genome);
-  //   this.connectNeuralCircuit();
-  //   this.body.addChild(this.brain);
-  // }
-
 
   // Vehicle.addSensor takes as input a sensor object and adds it to Vehicle's 'sensors' array
   // Also adds the object as a child of the Vehicle's Body property for rendering purposes
@@ -71,11 +58,80 @@ class Vehicle {
   }
 
   // Vehicle.setSignal takes as input a Signal object and sets it as the Vehicle's signal property
-  // Also adds the object as a child of the Vehicle's Body property for rendering purposes
+  // Also adds the object as a child of the Vehicle's Body property for rendering purposes.
   addSignal(s) {
     this.signal = s;
     this.body.addChild(s);
   }
+
+  // // connectNeuralCircuit builds the brain of current vehicle (neurons and synapses) according to the genome.
+  // connectNeuralCircuit() {
+  //   // Create neurons and synapses in brain. Initialize layers.
+  //   this.brain.layers = [];
+  //   var nLayers = this.genome.getMaxSynapseLength() + 1; // Calculate the number of layers in genome. 
+  //   console.log("calculated nLayers in genome: " + nLayers);
+  //   for (let i = 0; i < nLayers; i++) {
+  //     this.brain.layers.push([]); // push empty array
+  //   }
+
+  //   // Add sensor neurons corresponding to sensors in vehicle.
+  //   console.log("this.genome.inputNeuronGenes.length: " + this.genome.inputNeuronGenes.length);
+  //   console.log("this.sensors.length: " + this.sensors.length);
+  //   for (let i = 0; i < this.genome.inputNeuronGenes.length; i++) {
+  //     var n = new SensorNeuron(this.brain, this.genome.inputNeuronGenes[i], this.sensors[i]); // equal number of inputNeuronGenes and sensors.
+  //     //neuron.layer = gene.layer; // copied layer
+  //     this.brain.addNeuron(n);
+  //     this.sensors[i].connect(n); // check: when is sensor.neuron used????
+  //   }
+
+  //   // Add effector neurons corresponding to effectors in vehicle.
+  //   console.log("this.genome.outputNeuronGenes.length: " + this.genome.outputNeuronGenes.length);
+  //   console.log("this.effectors.length: " + this.effectors.length);
+  //   for (let i = 0; i < this.genome.outputNeuronGenes.length; i++) {
+  //     var n = new EffectorNeuron(this.brain, this.genome.outputNeuronGenes[i], this.effectors[i]);
+  //     this.brain.addNeuron(n);
+  //     this.effectors[i].connect(n); // check: when is effector.neuron used????
+  //   }
+
+  //   // Add hidden neurons.
+  //   console.log("this.genome.neuronGenes.length: " + this.genome.neuronGenes.length);
+  //   for (let i = 0; i < this.genome.neuronGenes.length; i++) {
+  //     this.brain.addNeuron(new Neuron(this.brain, this.genome.neuronGenes[i]));
+  //   }
+
+  //   // Add synapses.
+  //   for (let s of this.genome.synapseGenes) {
+  //     this.brain.addSynapse(new Synapse(this.brain, s));
+  //   }
+
+
+  //   /*
+  //   // Add neurons to the neural network for each effector of the Vehicle, then connect effector/neuron with pointers.
+  //   for (var i = 0; i < this.effectors.length; i++) {
+  //     var n = new EffectorNeuron(this.brain, this.genome.outputNeuronGenes[i], this.effectors[i]);
+  //     this.brain.addNeuron(n);
+  //     this.effectors[i].connect(n);
+  //   }
+
+  //   // Add neurons to the neural circuit for each sensor of the vehicle, then connect sensor/neuron with pointers.
+  //   // console.log(this.genome.inputNeuronGenes)
+  //   for (var i = 0; i < this.sensors.length; i++) {
+  //     var n = new SensorNeuron(this.brain, this.genome.inputNeuronGenes[i], this.sensors[i]);
+  //     this.brain.addNeuron(n);
+  //     this.sensors[i].connect(n);
+  //   }
+
+  //   // Add hidden layer neurons to the NC according to genome.
+  //   for (var i = 0; i < this.genome.neuronGenes.length; i++) {
+  //     this.brain.addNeuron(new Neuron(this.brain, this.genome.neuronGenes[i]));
+  //   }
+    
+  //   // Add remaining connections according to genome.
+  //   for (let s of this.genome.synapseGenes) {
+  //     this.brain.addSynapse(new Synapse(this.brain, s));
+  //   } */
+  //   this.body.addChild(this.brain);
+  // }
 
   // Vehicle.connectNeuralCircuit is a utility function that adds Neurons to the Vehicle's Neural Circuit
   // for each of its effectors and sensors. It also adds synapses to the Neural Circuit according to the genome.
@@ -102,25 +158,38 @@ class Vehicle {
     }
 
     // Add hidden layer neurons to the NC according to genome
-    for (var i = 0; i < this.genome.neuronGenes.length; i++) {
-      this.brain.addNeuron(new Neuron(this.brain, this.genome.neuronGenes[i]));
+    for (let ng of this.genome.neuronGenes) {
+      let n = new Neuron(this.brain, ng)
+      this.brain.addNeuron(n);
     }
-    
-    // add remaining connections according to genome
-    for (let s of this.genome.synapseGenes) {
-      this.brain.addSynapse(new Synapse(this.brain, s));
+
+    // Adjust position of hidden nodes for rendering
+    for (var l = 1; l < this.brain.layers.length - 1; l++) {
+      for (var i = 0; i < this.brain.layers[l].length; i++) {
+        var y = this.brain.layers[0][0].y - (this.brain.layers[0][0].y - this.brain.layers[this.brain.layers.length-1][0].y) * (this.brain.layers[l][i].layer) / (this.brain.layers.length-1);
+        var x = -this.body.width * (-1 + 2 * ((i + 1)/(this.brain.layers[l].length + 1)));
+        this.brain.layers[l][i].adjustPosition(x, y);
+      } 
     }
+
+    // add connections according to genome
+    for (var i = 0; i < this.genome.synapseGenes.length; i++) {
+      var s = new Synapse(this.brain, this.genome.synapseGenes[i]);
+      this.brain.addSynapse(s);
+    }
+
     this.body.addChild(this.brain);
   }
 
   update() {
+
     // update position
     this.drive();
 
     // process inputs
     this.brain.process();
 
-    // eat
+    // eat signals
     this.eat();
   }
 
@@ -135,15 +204,22 @@ class Vehicle {
     dR = ER.velocity * deltaT;
 
     // adjust for random noise
-    dL *= (1 + random(config.environmentNoise));
-    dR *= (1 + random(config.environmentNoise));
+    dL *= (1 + config.environmentNoise * randomGaussian());
+    dR *= (1 + config.environmentNoise * randomGaussian());
 
     // calculate distance traveled and steering angle
     dAvg = (dL + dR) / 2;
     theta = (dL - dR) / (abs(EL.x) + abs(ER.x));
 
+    // ***********************************************
+    // reward forward movement
+    if (dAvg > 0) {
+      this.fitnessScore += 1;
+    }
+    // ***********************************************
+
     // move about pivot
-    if (theta != 0) {   // drive in an arc
+    if (theta != 0) { // drive in an arc
       r = dAvg / theta;
       this.body.pivot.add(createVector(r * (1 - cos(theta)), -r * sin(theta)).rotate(this.body.angle));
       this.body.angle += theta;
@@ -162,8 +238,13 @@ class Vehicle {
       let d = p5.Vector.dist(this.body.position, s.position);
       if (d < this.body.width) {
         s.consume(this);
+        if (s.type == SIGNAL_TYPE.FOOD) {
+          this.fitnessScore += 100;
+        } else if (s.type == SIGNAL_TYPE.HAZARD) {
+          this.fitnessScore -= 50;
+        }
+        console.log("ate it!");
       }
-      
     }
   }
 
@@ -183,97 +264,65 @@ class Vehicle {
   /* genetics */
 
   // fitness function computes the fitness score for current object based on how well it achieved a certain goal.
-  fitness() {
-    // this.fitnessScore += random();
-  }
+  /*fitness() {
+    this.fitnessScore += Math.round(random(10));
+  } */
 
-  // crossover function creates a new genome from a combination of current object's genome and the partner's genome.
-  static crossover(p1, p2) {
+  // mate function creates a new genome from a normal crossover of current object's genome and the partner's genome.
+  static mate(parent1, parent2) {
 
-    let child = new Vehicle(random(canvasWidth), random(canvasHeight), p1. population);
-
+    var child = new Vehicle(random(canvasWidth), random(canvasHeight), parent1.population);
+    
     // create new genome
-    let g = new Genome();
-
-    let p2Genes = []; let p1Genes = [];
-    for (let sg1 of p1.genome.synapseGenes) {
-      for (let sg2 of p2.genome.synapseGenes) {
-        if (sg1.id == sg2.id) {   // matching genes
-          if (random() < 0.5) {
-            g.addSynapseGene(sg2);
-            g.addNeuronGene(sg2.from);
-            g.addNeuronGene(sg2.to);
-            p2Genes.push([sg2]);
-          } else {
-            g.addSynapseGene(sg1);
-            g.addNeuronGene(sg1.from);
-            g.addNeuronGene(sg1.to);
-            p1Genes.push(sg1)
-          }
-        } else {  // incompatible genes
-          g.addSynapseGene(sg1);
-          g.addNeuronGene(sg1.from);
-          g.addNeuronGene(sg1.to);
-          p1Genes.push(sg1)
-        }
-      }
-    }
-
-    console.log(g);
-    console.log(p1.population.genePool)
-
+    child.genome = new Genome();
+    child.genome = Genome.crossover(parent1.genome, parent2.genome);
     // random structural mutations
-    g.mutate(child.population.newSynapseMutationRate, child.population.newNeuronMutationRate, child.population.genePool)
+    child.genome.mutate(child.population.newSynapseMutationRate, child.population.newNeuronMutationRate, 
+      child.population.genePool);
 
-
-    // construct new neural circuit structure
-    child.genome = g;
+    console.log(child.population.genePool);
+    // Construct new neural circuit structure according to the genome.
     child.connectNeuralCircuit();
+    console.log(child.brain);
 
-    // console.log(child.brain)
-    // console.log(p1.brain)
+    // Inherit weights, biases, and thresholds of child's synapses from parents's brains.
+    for (let i = 0; i < child.brain.synapses.length; i++) {
+      let syn = child.brain.synapses[i];
+      let s1 = parent1.brain.getSynapseById(syn.id);
+      let s2 = parent2.brain.getSynapseById(syn.id);
 
-    // inherit weights, biases, and thresholds
-    for (let s of child.brain.synapses) {
-      // console.log(s)
-      console.log(1)
-      let sg = p2.genome.getSynapseById(s.ID);
-      // console.log(sg)
-      // console.log(p2Genes.indexOf(sg))
-      if (p2Genes.indexOf(sg) >= 0) { // inherited from p2
-        let s2 = p2brain.getSynapseById(s.ID);
-        s.weight = s2.weight;
-        s.from.threshold = s2.from.threshold;
-        s.from.bias = s.from.bias;
-      } else if (p1Genes.indexOf(sg) >= 0) {  // inherited from p1
-        let s2 = p1.brain.getSynapseById(s.ID);
-        s.weight = s2.weight;
-        s.pre.threshold = s2.pre.threshold;
-        s.post.bias = s.post.bias;
-      } else {
-        s.weight = random(-1,1);
-        s.pre.threshold = random();
-        s.post.bias = random(-1, 1)
+      if (s1 != null && s2 != null) { // Inherited from both. Average them.
+          syn.weight = (s1.weight + s2.weight) / 2;
+          syn.pre.threshold = (s1.pre.threshold + s2.pre.threshold) / 2;
+          syn.pre.bias = (s1.pre.bias + s2.pre.bias) / 2;
+      } else if (s1 != null) { // Inherited from parent1.
+          syn.weight = s1.weight;
+          syn.pre.threshold = s1.pre.threshold;
+          syn.pre.bias = s1.pre.bias;
+      } else if (s2 != null) { // Inherited from parent2.
+          syn.weight = s2.weight;
+          syn.pre.threshold = s2.pre.threshold;
+          syn.pre.bias = s2.pre.bias;
+      } else { // Not inherited from any parent.
+          syn.weight = random(-1, 1);
+          syn.pre.threshold = random(0, 1);
+          syn.post.bias = random(-1, 1);
+          //console.log(syn);
+          //console.log(parent1.brain);
+          //console.log(parent2.brain);
       }
     }
 
-    // apply random mutations to non-structral properties of NC
-
+    // apply random mutations to non-structral properties of NC.
 
     return child;
   }
 
-  static crossoverBiased(parent1, parent2, child) {
-    child.genome = Genome.crossoverBiased(parent1.genome, parent2.genome);
-    return child;
+  static mateBiased(parent1, parent2) {
+    //child.genome = Genome.crossoverBiased(parent1.genome, parent2.genome);
+    //return child;
   }
 
-  // mutate function makes a random change in current's object genome based on mutationRate
-  // It can change the genePool by generating new genes.
-  mutate(mutationRate, genePool) {
-    genePool = this.genome.mutate(mutationRate, genePool);
-    return genePool;
-  }
 }
 
 // Sensor class definition
@@ -283,7 +332,6 @@ class Sensor {
   constructor(parent, side, angle, type) {
     this.parent = parent;
     this.neuron = {};
-    this.activation = 0;
     this.type = type;
     this.angle = angle;
     this.y = parent.axisOffsetY - parent.height * config.sensorFrontBackPlacement;
@@ -323,21 +371,8 @@ class Sensor {
         }
       }
     }
-
-    /*
-    if (v.signal != undefined) {
-      for (let v of world.vehicles) {
-        if (this.type == v.signal.type && this.parent != v.body) {
-          d = p5.Vector.dist(createVector(this.x, this.y).rotate(this.parent.angle).add(this.parent.pivot), v.body.position);
-          if (d < v.signal.radius) {
-            a += v.signal.intensity * (1 - d/v.signal.radius);
-          }
-        }   
-      }
-    } */
     
-    this.activation = a;
-    this.neuron.activation = this.activation;
+    this.neuron.activation = a;
   }
 
   connect(n) {
@@ -385,17 +420,16 @@ class Effector {
     } else if (side == "RIGHT") {
       this.x = config.motorSeparation * parent.width;
     }
-    this.activation = 0;
-    this.velocity = 0;
-    this.mag = 100;    
+    this.velocity = 0;    
   }
 
   // Effector.update adjusts the Effector's velocity according to the activation of the associated neuron in the Vehilce's 
   // Neural Circuit. Velocity is also adjusted for friction.
   update() {
-    this.activation = this.neuron.activation;
-    this.activation = constrain(this.activation, -1, 1)
-    this.velocity += this.activation * this.mag * deltaT / this.parent.mass;
+    if (config.constrainVelocity) {
+      this.neuron.activation = constrain(this.neuron.activation, -1, 1)
+    }
+    this.velocity += config.motorSpeed * this.neuron.activation * deltaT / this.parent.mass;
     this.velocity -= this.velocity * config.motorFriction;
     }
 

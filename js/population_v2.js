@@ -1,30 +1,77 @@
 
-const DEFAULT = {
-  size: 12,
-  sensorTypes: [SIGNAL_TYPE.LIGHT],
-  signal: SIGNAL_TYPE.LIGHT,
-  color: [255, 255, 255]
+// Predefined objects with default values for a specific type of population. 
+const SCAVENGER = {
+  size: 10,
+  sensorTypes: [SIGNAL_TYPE.FOOD, SIGNAL_TYPE.HAZARD],
+  signal: null,
+  color: [255, 222, 173],
+  brain: [COLLECT, AVOID]
 }
 
-const ALLSENSORS = {
-  size: 15, 
+const EXPLORER = {
+  size: 10, 
   sensorTypes: [SIGNAL_TYPE.LIGHT, SIGNAL_TYPE.FOOD, SIGNAL_TYPE.HAZARD],
   signal: SIGNAL_TYPE.LIGHT,
-  color: [130, 200, 255]
+  color: [130, 200, 255],
+  brain: [CURIOUSITY, CURIOUSITY, CURIOUSITY]
 }
 
+// const PREY = {
+//     size: 10,
+//     sensorTypes: [SIGNAL_TYPE.HAZARD],
+//     signal: SIGNAL_TYPE.FOOD,
+//     color: [25, 25, 255],
+//     brain: [AVOID]
+// }
+
+// const PREDATOR = {
+//     size: 12,
+//     sensorTypes: [SIGNAL_TYPE.FOOD],
+//     signal: SIGNAL_TYPE.HAZARD,
+//     color: [0, 0, 0],
+//     brain: [AGGRESSION]
+// }
+
 const PREY = {
-    size: 8,
-    sensorTypes: [SIGNAL_TYPE.HAZARD],
+    size: 10,
+    sensorTypes: [SIGNAL_TYPE.HAZARD, SIGNAL_TYPE.HAZARD],
     signal: SIGNAL_TYPE.FOOD,
-    color: [165, 165, 165]
+    color: [170, 150, 150],
+    brain: [AVOID, FEAR]
+    // brain: "random"
 }
 
 const PREDATOR = {
-    size: 16,
-    sensorTypes: [SIGNAL_TYPE.FOOD],
+    size: 12,
+    sensorTypes: [SIGNAL_TYPE.FOOD, SIGNAL_TYPE.FOOD],
     signal: SIGNAL_TYPE.HAZARD,
-    color: [135, 135, 135]
+    color: [130, 107, 43],
+    brain: [COLLECT, AGGRESSION]
+    // brain: "random"
+}
+
+const AGGRESSIVE_TYPE = {
+    size: 10,
+    sensorTypes: null,
+    signal: SIGNAL_TYPE.FOOD,
+    color: [255],
+    brain: [AGGRESSION]
+}
+
+const ATTRACTED_TYPE = {
+    size: 10,
+    sensorTypes: [SIGNAL_TYPE.FOOD],
+    signal: null,
+    color: [255, 130, 0],
+    brain: [LIKE]
+}
+
+const AVOIDING_TYPE = {
+    size: 10,
+    sensorTypes: [SIGNAL_TYPE.HAZARD],
+    signal: null,
+    color: [255, 130, 0],
+    brain: [AVOID]
 }
 
 class Population {
@@ -33,6 +80,7 @@ class Population {
         this.size = size;
         this.agentSize = traits.size;
         this.sensorTypes = traits.sensorTypes;
+        this.brains = traits.brain;
         this.signal = traits.signal;
         this.color = color(traits.color);
 
@@ -43,25 +91,31 @@ class Population {
         this.randomThresholdMutationRate = evolve.randomThreshold;  
 
         this.vehicles = [];
-        this.champions = [];
+        this.champions = []; // Stores the individuals with highest fitnessScore, aka champions.
         this.generation = 0;
         this.idGenerator = 0;
 
         this.matingPool = [];
         this.genePool =  new GenePool(traits.sensorTypes);   
     }
-
+     
+    // populate generates this.size new individuals, each with a new genome and neural circuit.
     populate() {
-        for (var i = 0; i < this.size; i++) {
-
-            let g = new Genome();
-            g.initializeGenes(this.genePool);
-
+        for (var i = 0; i < this.size; i++) {    
             let v = new Vehicle(random(canvasWidth), random(canvasHeight), this);
-            v.genome = g;
+            v.genome = new Genome();
+            // iniatilize genome with full topology from genePool (all edges).
+            v.genome.initializeGenes(this.genePool);
+            // console.log("Founders genomes:");
+            // console.log(v.genome);
             v.connectNeuralCircuit();
-            v.brain.randomize();
-
+            
+            if (this.brains == "random") {
+                v.brain.randomize(); // check if it works correctly **********---------+++++++++++++
+            } else {
+                v.brain.build(this.brains); // check if it works correctly **********---------+++++++++++++
+            }
+            console.log(v.brain)
             this.addVehicle(v);
         }
     }
@@ -71,74 +125,99 @@ class Population {
       this.vehicles.push(itm);
     }
 
-    // fitness computes the fitness score for each vehicle in this population.
+    // function fitness computes the fitness score for each vehicle in this population.
+    // It resized each fitnessScore so that it represents a fraction of a total.
     fitness() {
-        for (let i = 0; i < this.size; i++) {
-            this.vehicles[i].fitness();
+        var sum = 0;
+        for (let i = 0; i < this.vehicles.length; i++) {
+            sum += this.vehicles[i].fitnessScore;
+        }
+
+        for (let i = 0; i < this.vehicles.length; i++) {
+            // resize fitnessScore
+            this.vehicles[i].fitnessScore = (this.vehicles[i].fitnessScore / sum).toFixed(2);
         }
     }
 
-    sortByFitness() {
-        this.vehicles.sort(CompareFitness);
+    // sortByFitnessScore sorts this.vehicles array in a descendent fashion considering their fitnessScores.
+    sortVehiclesByFitnessScore() {
+        this.vehicles.sort(function(a,b){return b.fitnessScore - a.fitnessScore});
     }
 
-    // selection fills the matingPool array for selection based on probability.
+    // selection fills the matingPool array for selection based on probability (wheel of fortune).
     selection() {
         this.champions = [];
         this.matingPool = []; // matingPool will have length 100
+        this.sortVehiclesByFitnessScore(); // Order vehicles in decreasing order of fitnessScore.
+        console.log(this.vehicles);
+
+        // find total of all fitness scores
         let total = 0;
-        this.sortByFitness();
         for (let i = 0; i < this.size; i++) {
             total += this.vehicles[i].fitnessScore;
         }
+
+        // Select champions to copy
         for (let i = 0; i < config.numberCopied; i++) {
             this.champions.push(this.vehicles[i]);
         }
+
+        // Create mating pool so that a vehicle's probability of mating is equivalent to its fitness score 
+        // divided by the total fitness score of the population
         for (let i = 0; i < this.size; i++) {
+            
             // add vehicles[i] to mating pool a number of times proportionate to its fitness score
-            let nTimes = this.vehicles[i].fitnessScore/total * 100;
+            let nTimes = Math.round(this.vehicles[i].fitnessScore / total * 100);
             for (let j = 0; j < nTimes; j++) {
                 this.matingPool.push(this.vehicles[i]);
             }
         }
     }
     
-    // style can be 0 for normal crossover, or 1 for biased crossover
+    // reproduction generates a next generation on individuals using the mating pool from current generation. 
+    // style parameter can be 0 (default) for normal crossover, or 1 for biased crossover.
     reproduction(style = 0) {
-        this.vehicles = [];
-        // generate size childs for next generation
+
+        this.killThemAll();
+        // this.vehicles = [];
+
+        // Copy the the champions from previous generation. 
         for (let i = 0; i < config.numberCopied; i++) {
             this.addVehicle(this.champions[i]);
         }
+
+        // Create the rest of individuals by selecting parents from the mating pool
         for (let i = config.numberCopied; i < this.size; i++) {
+            
+            // randomly select two parents from the mating pool
             var parent1 = random(this.matingPool);
             var parent2 = null;
+            var child;
             do {
                 parent2 = random(this.matingPool);
-            } while(parent1 === parent2);
-            
-            var child;
+            } while(parent1.id === parent2.id);
 
-            if (style === 0) {
-
-                child = Vehicle.crossover(parent1, parent2);
-
-            } else if (style === 1) {
-                if (parent1.fitness > parent2.fitness) {
-                    child = Vehicle.crossoverBiased(parent1, parent2, child);
+            // create new child 
+            if (style == 0) { // normal crossover
+                // Obtain a child object with genome product of parents's genome crossover.
+                // Vehicle.mate returns an object with connected neural circuit.
+                child = Vehicle.mate(parent1, parent2);
+            } else if (style == 1) { // biased crossover
+                if (parent1.fitnessScore > parent2.fitnessScore) {
+                    child = Vehicle.mateBiased(parent1, parent2, child);
                 } else {
-                    child = Vehicle.crossoverBiased(parent2, parent1, child);
+                    child = Vehicle.mateBiased(parent2, parent1, child);
                 }
             }
+
+            // add new child to population
             this.addVehicle(child);
         }
     }
 
-    
-
     killOne(itm) {
         for (let i = this.vehicles.length - 1; i >= 0; i--) {
-            if (this.vehicles[i] === itm) {
+            if (this.vehicles[i].id === itm.id) {
                 this.vehicles.splice(i, 1);
             }
         }
@@ -148,11 +227,33 @@ class Population {
         this.vehicles = [];
     }
     
+    // // update function is called on each frame and updates each object's properties.
+    // update() {
+    //     //this.fitness();
+    //     if (timeToEvolve) {
+    //         timeToEvolve = false;
+    //         this.fitness(); // Compute fitnessScores
+    //         this.selection(); // Creates matingPool
+    //         // Only create next generation if matingPool was properly formed.
+    //         console.log("matingPool.length: " + this.matingPool.length);
+    //         if (this.matingPool.length > 0) {
+    //             console.log("=============== New generation ===============")
+    //             //this.reproduction();
+    //             this.generation++;
+    //         }
+    //     }
+
+    //     for (let itm of this.vehicles) {
+    //         itm.update();
+    //     }
+    // }
+
     // update function is called on each frame and updates each object's properties.
     update() {
-        this.fitness();
+        // this.fitness();
         generationTimer += deltaT;
         if (generationTimer > config.generationLifespan) {
+            console.log("NEW GENERATION!")
             generationTimer = 0;
             this.selection();
             this.reproduction();
@@ -163,30 +264,10 @@ class Population {
         }
     }
 
-    // render function is called on each frame and redraws the object on canvas.
+    // render function is called on each frame and redraws each vehicle of this population on canvas.
     render() {
         for (let itm of this.vehicles) {
             itm.render();
         } 
-    }
-
-    // testReproduction() {
-    //     var parent1 = random(this.vehicles);
-    //     var parent2 = random(this.vehicles);
-    //     console.log(parent1, parent2);
-
-    //     var child = new Vehicle(random(canvasWidth), random(canvasHeight), this.agentSize, random(0, 2*PI), this.color, this.signalTypes, this.genePool);
-    //     child = Vehicle.crossover(parent1, parent2, child);
-    //     console.log(child);
-    // }
-}
-
-function CompareFitness(a, b) {
-    if (a.fitnessScore < b.fitnessScore) {
-        return 1;
-    } if (a.fitnessScore > b.fitnessScore) {
-        return -1;
-    } else {
-        return 0;
     }
 }

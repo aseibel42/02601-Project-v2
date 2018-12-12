@@ -72,4 +72,15 @@ class GenePool {
       }
       return ng;
     }
+
+    // getSynapseGene looks for a synapse (ng1, ng2) in current gene pool and returns it. 
+    getSynapseGene(ng1, ng2) {
+      for (let i = 0; i < this.synapseGenes.length; i++) {
+        if (this.synapseGenes[i].from.id === ng1.id && this.synapseGenes[i].to.id === ng2.id) {
+          return this.synapseGenes[i];
+        }
+      }
+      return null;
+    }
+
   }
